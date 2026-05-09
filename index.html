@@ -63,70 +63,51 @@ async function update() {
     const liveBox = document.getElementById('live-container');
     
     try {
-        status.innerText = "⏳ Collegamento al server FIPAV...";
-        // Usiamo un proxy che gestisce bene i contenuti dinamici
-        const targetUrl = "https://www.federvolley.it/live-score-b1-femminile";
-        const response = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`);
+        status.innerText = "⏳ Accesso al flusso dati Datasport...";
         
-        if (!response.ok) throw new Error("Connessione fallita");
+        // Questo è il link "dietro le quinte" che alimenta il sito FIPAV per la B1 Femminile
+        const feedUrl = "https://gridm.datasport.it/api/v1/matches?tournament_id=85&season_id=2025"; 
+        const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}&cb=${Date.now()}`;
+
+        const response = await fetch(proxy);
+        const data = await response.json();
         
-        const html = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
+        // I dati arrivano in formato JSON, molto più facile da leggere dell'HTML
+        const content = JSON.parse(data.contents);
+        const matches = content.data || [];
 
-        // Nel sito FIPAV ogni match è un div con classe "item" o "match-wrap"
-        const matchBlocks = doc.querySelectorAll('.views-row, .match-wrap, .item');
-        let matches = [];
+        let foundMatches = [];
 
-        status.innerText = "🔍 Analisi Girone C...";
+        status.innerText = "🔍 Filtraggio Girone C...";
 
-        matchBlocks.forEach(block => {
-            const text = block.innerText.toUpperCase();
+        matches.forEach(m => {
+            // Verifichiamo se una delle squadre nel match è del Girone C (nella nostra lista)
+            const hName = m.home_team.name.toUpperCase();
+            const aName = m.away_team.name.toUpperCase();
             
-            // Verifichiamo se il blocco contiene una delle squadre del nostro girone
-            const foundTeam = BASE_DATA.find(t => text.includes(t.name.substring(0, 8)));
-            
-            if (foundTeam) {
-                // Estraiamo i nomi delle due squadre nel blocco
-                const teamsInBlock = block.querySelectorAll('.team-label, .team-name, .field-content');
-                if (teamsInBlock.length >= 2) {
-                    const homeName = teamsInBlock[0].innerText.trim();
-                    const awayName = teamsInBlock[1].innerText.trim();
+            const isOurMatch = BASE_DATA.some(t => 
+                hName.includes(t.name.substring(0, 7)) || 
+                aName.includes(t.name.substring(0, 7))
+            );
 
-                    // CONTEGGIO SET: Contiamo quanti quadratini blu (vinti) ci sono per ogni squadra
-                    // Nello screenshot sono i div/span con la classe che indica il set vinto
-                    const homeSets = block.querySelectorAll('.home-team-score .set-vinto, .score-1.active').length;
-                    const awaySets = block.querySelectorAll('.away-team-score .set-vinto, .score-2.active').length;
-
-                    // Se non troviamo i quadratini, proviamo a cercare il numero totale nel box "SET"
-                    let s1 = homeSets, s2 = awaySets;
-                    if (s1 === 0 && s2 === 0) {
-                        const totalScore = block.querySelector('.total-score, .set-result');
-                        if (totalScore) {
-                            const pts = totalScore.innerText.split('-');
-                            s1 = parseInt(pts[0]) || 0;
-                            s2 = parseInt(pts[1]) || 0;
-                        }
-                    }
-
-                    // Aggiungiamo il match se abbiamo trovato i nomi
-                    if (homeName.length > 2) {
-                        matches.push({ h: homeName, a: awayName, s1: s1, s2: s2 });
-                    }
-                }
+            if (isOurMatch) {
+                foundMatches.push({
+                    h: m.home_team.name,
+                    a: m.away_team.name,
+                    s1: m.home_score || 0,
+                    s2: m.away_score || 0
+                });
             }
         });
 
-        // Rimuoviamo duplicati (il sito a volte ripete i blocchi per il mobile)
-        const uniqueMatches = matches.filter((v,i,a)=>a.findIndex(t=>(t.h===v.h && t.a===v.a))===i);
-
-        renderContent(uniqueMatches);
+        renderContent(foundMatches);
         status.style.background = "#48bb78";
-        status.innerText = "✅ LIVE AGGIORNATO: " + new Date().toLocaleTimeString();
+        status.innerText = "✅ DATI ORIGINALI AGGIORNATI: " + new Date().toLocaleTimeString();
 
     } catch (err) {
+        console.error(err);
         status.style.background = "#e53e3e";
-        status.innerText = "❌ Errore di rete. Riprovo...";
+        status.innerText = "❌ Errore Feed: Il server Datasport non risponde.";
     }
 }
 
