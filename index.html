@@ -60,20 +60,48 @@ const BASE_DATA = [
 
 async function update() {
     const status = document.getElementById('status-bar');
-    const liveBox = document.getElementById('live-container');
+    const targetUrl = "https://www.federvolley.it/live-score-b1-femminile";
     
-    try {
-        status.innerText = "⏳ Connessione in corso...";
-        
-        // Proviamo corsproxy.io con header anti-cache
-        const targetUrl = "https://www.federvolley.it/live-score-b1-femminile";
-        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}&cache=${Date.now()}`);
-        
-        if (!response.ok) throw new Error("Server FIPAV non risponde (CORS)");
-        
-        const html = await response.text();
-        status.innerText = "🔍 Analisi dati riceuti...";
+    // Lista di proxy da provare in ordine
+    const proxyList = [
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`
+    ];
 
+    let html = null;
+
+    for (let proxy of proxyList) {
+        try {
+            status.style.background = "#2d3748";
+            status.innerText = "⏳ Tentativo ponte dati...";
+            
+            const response = await fetch(proxy);
+            if (!response.ok) continue;
+
+            // Se è AllOrigins, estraiamo .contents, altrimenti usiamo .text()
+            if (proxy.includes("allorigins")) {
+                const json = await response.json();
+                html = json.contents;
+            } else {
+                html = await response.text();
+            }
+
+            if (html && html.length > 500) break; // Abbiamo preso la pagina correttamente
+        } catch (e) {
+            console.log("Proxy fallito, provo il prossimo...");
+        }
+    }
+
+    if (!html) {
+        status.style.background = "#e53e3e";
+        status.innerText = "❌ Tutti i ponti dati sono bloccati. Riprovo tra 1 minuto.";
+        renderContent([]);
+        return;
+    }
+
+    try {
+        status.innerText = "🔍 Analisi Girone C...";
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
         const rows = Array.from(doc.querySelectorAll('tr'));
@@ -93,7 +121,7 @@ async function update() {
                     const s = cells[1].innerText.trim();
                     const a = cells[2].innerText.trim();
                     
-                    if (s.includes("-") && h.length > 3) {
+                    if (s.includes("-") && h.length > 2) {
                         const scoreParts = s.split("-").map(n => parseInt(n));
                         if (!isNaN(scoreParts[0])) {
                             matches.push({ h, a, s1: scoreParts[0], s2: scoreParts[1] });
@@ -105,13 +133,10 @@ async function update() {
 
         renderContent(matches);
         status.style.background = "#48bb78";
-        status.innerText = "✅ Aggiornato: " + new Date().toLocaleTimeString();
+        status.innerText = "✅ Connesso! Aggiornato: " + new Date().toLocaleTimeString();
 
     } catch (err) {
-        console.error(err);
-        status.style.background = "#e53e3e";
-        status.innerText = "❌ Errore: " + err.message + ". Riprovo...";
-        renderContent([]); // Mostra almeno la classifica base
+        status.innerText = "❌ Errore parsing: " + err.message;
     }
 }
 
@@ -120,7 +145,6 @@ function renderContent(matches) {
     const standingsBody = document.getElementById('standings-body');
     const standings = JSON.parse(JSON.stringify(BASE_DATA));
 
-    // Se ci sono match, aggiorna la classifica live
     if (matches.length > 0) {
         liveBox.innerHTML = "";
         matches.forEach(m => {
@@ -131,7 +155,6 @@ function renderContent(matches) {
                     <div class="team">${m.a}</div>
                 </div>`;
             
-            // Trova squadre e calcola punti
             const t1 = standings.find(t => m.h.toUpperCase().includes(t.name.substring(0,8)));
             const t2 = standings.find(t => m.a.toUpperCase().includes(t.name.substring(0,8)));
             
@@ -144,13 +167,11 @@ function renderContent(matches) {
             }
         });
     } else {
-        liveBox.innerHTML = "<p style='color:#718096; text-align:center;'>Nessuna partita live trovata in questo momento.</p>";
+        liveBox.innerHTML = "<p style='color:#718096; text-align:center;'>Nessuna partita live (o server FIPAV momentaneamente oscurato).</p>";
     }
 
-    // Ordina classifica
     standings.sort((a,b) => b.pts - a.pts || b.v - a.v || (b.sv/b.sp) - (a.sv/a.sp));
 
-    // Renderizza tabella
     standingsBody.innerHTML = standings.map((t, i) => `
         <tr class="${t.name.includes("GPS") ? 'gps' : ''}">
             <td>${i+1}</td>
@@ -161,10 +182,6 @@ function renderContent(matches) {
         </tr>`).join('');
 }
 
-// Avvio immediato
 update();
-// Aggiornamento ogni 30 secondi
-setInterval(update, 30000);
+setInterval(update, 45000);
 </script>
-</body>
-</html>
