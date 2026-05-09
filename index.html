@@ -2,38 +2,42 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>GPS VOLLEY LIVE</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS VOLLEY LIVE</title>
     <style>
-        body { font-family: sans-serif; background: #f0f4f8; margin: 0; padding: 10px; color: #1a202c; }
+        body { font-family: -apple-system, sans-serif; background: #f7fafc; margin: 0; padding: 10px; }
         .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { margin-top: 0; color: #2d3748; font-size: 1.2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
-        .match { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #edf2f7; border-radius: 8px; margin-bottom: 8px; }
+        #status-bar { background: #2d3748; color: #fff; padding: 8px; border-radius: 8px; font-size: 11px; margin-bottom: 15px; text-align: center; }
+        .match { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f1f5f9; border-radius: 8px; margin-bottom: 8px; border-left: 5px solid #48bb78; }
         .team { width: 40%; font-weight: bold; font-size: 0.9rem; }
-        .score { width: 20%; text-align: center; font-size: 1.4rem; font-weight: 800; color: #e53e3e; }
+        .score { width: 20%; text-align: center; font-size: 1.5rem; font-weight: 800; color: #e53e3e; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th { text-align: left; padding: 10px; background: #f7fafc; }
+        th { text-align: left; padding: 10px; background: #edf2f7; }
         td { padding: 10px; border-top: 1px solid #edf2f7; text-align: center; }
-        .gps { background: #ebf8ff; font-weight: bold; }
-        #debug { font-size: 0.7rem; color: #718096; text-align: center; margin-top: 10px; }
+        .gps { background: #ebf8ff; font-weight: bold; color: #2b6cb0; }
+        .live-tag { background: #fc8181; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 
+<div id="status-bar">Avvio sistema...</div>
+
 <div class="card">
-    <h2 id="live-title">🏐 Partite Live Girone C</h2>
-    <div id="live-container">Caricamento risultati...</div>
-    <div id="debug">Inizializzazione...</div>
+    <h2 style="margin-top:0"><span class="live-tag">LIVE</span> Girone C</h2>
+    <div id="live-container">Ricerca partite...</div>
 </div>
 
 <div class="card">
-    <h2>🏆 Classifica Live</h2>
-    <table>
-        <thead>
-            <tr><th>#</th><th style="text-align:left">Squadra</th><th>PT</th><th>V</th><th>SET</th></tr>
-        </thead>
-        <tbody id="standings-body"></tbody>
-    </table>
+    <h2>🏆 Classifica Real-Time</h2>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr><th>#</th><th style="text-align:left">Squadra</th><th>PT</th><th>V</th><th>SET</th></tr>
+            </thead>
+            <tbody id="standings-body"></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
@@ -55,63 +59,69 @@ const BASE_DATA = [
 ];
 
 async function update() {
-    const debug = document.getElementById('debug');
+    const status = document.getElementById('status-bar');
     const liveBox = document.getElementById('live-container');
     
     try {
-        debug.innerText = "Connessione al server FIPAV via CORSProxy...";
+        status.innerText = "⏳ Connessione in corso...";
         
-        // Usiamo corsproxy.io che è più leggero e non usa il protocollo QUIC che ti dava errore
-        const url = "https://www.federvolley.it/live-score-b1-femminile";
-        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+        // Proviamo corsproxy.io con header anti-cache
+        const targetUrl = "https://www.federvolley.it/live-score-b1-femminile";
+        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}&cache=${Date.now()}`);
         
-        if (!response.ok) throw new Error("Timeout o errore server");
+        if (!response.ok) throw new Error("Server FIPAV non risponde (CORS)");
         
         const html = await response.text();
-        debug.innerText = "Dati ricevuti, analisi Girone C...";
+        status.innerText = "🔍 Analisi dati riceuti...";
 
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-        const rows = doc.querySelectorAll('tr');
+        const rows = Array.from(doc.querySelectorAll('tr'));
         
         let matches = [];
-        let isC = false;
+        let isGironeC = false;
 
         rows.forEach(r => {
-            const txt = r.innerText.toUpperCase();
-            if (txt.includes("GIRONE C")) isC = true;
-            if (txt.includes("GIRONE D")) isC = false;
+            const text = r.innerText.toUpperCase();
+            if (text.includes("GIRONE C")) isGironeC = true;
+            if (text.includes("GIRONE D")) isGironeC = false;
 
-            if (isC) {
-                const tds = r.querySelectorAll('td');
-                if (tds.length >= 3) {
-                    const h = tds[0].innerText.trim();
-                    const s = tds[1].innerText.trim();
-                    const a = tds[2].innerText.trim();
+            if (isGironeC) {
+                const cells = r.querySelectorAll('td');
+                if (cells.length >= 3) {
+                    const h = cells[0].innerText.trim();
+                    const s = cells[1].innerText.trim();
+                    const a = cells[2].innerText.trim();
+                    
                     if (s.includes("-") && h.length > 3) {
-                        const pts = s.split("-").map(n => parseInt(n));
-                        if (!isNaN(pts[0])) matches.push({ h, a, s1:pts[0], s2:pts[1] });
+                        const scoreParts = s.split("-").map(n => parseInt(n));
+                        if (!isNaN(scoreParts[0])) {
+                            matches.push({ h, a, s1: scoreParts[0], s2: scoreParts[1] });
+                        }
                     }
                 }
             }
         });
 
-        render(matches);
-        debug.innerText = "Aggiornato: " + new Date().toLocaleTimeString();
+        renderContent(matches);
+        status.style.background = "#48bb78";
+        status.innerText = "✅ Aggiornato: " + new Date().toLocaleTimeString();
 
-    } catch (e) {
-        debug.innerText = "Errore: " + e.message + ". Riprovo tra 30 secondi.";
-        render([]); // Mostra classifica base
+    } catch (err) {
+        console.error(err);
+        status.style.background = "#e53e3e";
+        status.innerText = "❌ Errore: " + err.message + ". Riprovo...";
+        renderContent([]); // Mostra almeno la classifica base
     }
 }
 
-function render(matches) {
+function renderContent(matches) {
     const liveBox = document.getElementById('live-container');
+    const standingsBody = document.getElementById('standings-body');
     const standings = JSON.parse(JSON.stringify(BASE_DATA));
 
-    if (matches.length === 0) {
-        liveBox.innerHTML = "<p style='text-align:center; color:#a0aec0;'>Nessun match live trovato nel girone.</p>";
-    } else {
+    // Se ci sono match, aggiorna la classifica live
+    if (matches.length > 0) {
         liveBox.innerHTML = "";
         matches.forEach(m => {
             liveBox.innerHTML += `
@@ -121,9 +131,10 @@ function render(matches) {
                     <div class="team">${m.a}</div>
                 </div>`;
             
-            // Calcolo punti live
-            const find = (n) => standings.find(t => n.toUpperCase().includes(t.name.substring(0,8)));
-            const t1 = find(m.h), t2 = find(m.a);
+            // Trova squadre e calcola punti
+            const t1 = standings.find(t => m.h.toUpperCase().includes(t.name.substring(0,8)));
+            const t2 = standings.find(t => m.a.toUpperCase().includes(t.name.substring(0,8)));
+            
             if (t1 && t2) {
                 t1.sv += m.s1; t1.sp += m.s2; t2.sv += m.s2; t2.sp += m.s1;
                 if (m.s1 === 3 && m.s2 <= 1) { t1.pts += 3; t1.v += 1; }
@@ -132,12 +143,15 @@ function render(matches) {
                 else if (m.s2 === 3 && m.s1 === 2) { t2.pts += 2; t2.v += 1; t1.pts += 1; }
             }
         });
+    } else {
+        liveBox.innerHTML = "<p style='color:#718096; text-align:center;'>Nessuna partita live trovata in questo momento.</p>";
     }
 
+    // Ordina classifica
     standings.sort((a,b) => b.pts - a.pts || b.v - a.v || (b.sv/b.sp) - (a.sv/a.sp));
-    
-    const tbody = document.getElementById('standings-body');
-    tbody.innerHTML = standings.map((t, i) => `
+
+    // Renderizza tabella
+    standingsBody.innerHTML = standings.map((t, i) => `
         <tr class="${t.name.includes("GPS") ? 'gps' : ''}">
             <td>${i+1}</td>
             <td style="text-align:left">${t.name}</td>
@@ -147,7 +161,9 @@ function render(matches) {
         </tr>`).join('');
 }
 
+// Avvio immediato
 update();
+// Aggiornamento ogni 30 secondi
 setInterval(update, 30000);
 </script>
 </body>
