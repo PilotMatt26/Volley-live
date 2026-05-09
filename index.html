@@ -60,83 +60,73 @@ const BASE_DATA = [
 
 async function update() {
     const status = document.getElementById('status-bar');
-    const targetUrl = "https://www.federvolley.it/live-score-b1-femminile";
+    const liveBox = document.getElementById('live-container');
     
-    // Lista di proxy da provare in ordine
-    const proxyList = [
-        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
-        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`
-    ];
-
-    let html = null;
-
-    for (let proxy of proxyList) {
-        try {
-            status.style.background = "#2d3748";
-            status.innerText = "⏳ Tentativo ponte dati...";
-            
-            const response = await fetch(proxy);
-            if (!response.ok) continue;
-
-            // Se è AllOrigins, estraiamo .contents, altrimenti usiamo .text()
-            if (proxy.includes("allorigins")) {
-                const json = await response.json();
-                html = json.contents;
-            } else {
-                html = await response.text();
-            }
-
-            if (html && html.length > 500) break; // Abbiamo preso la pagina correttamente
-        } catch (e) {
-            console.log("Proxy fallito, provo il prossimo...");
-        }
-    }
-
-    if (!html) {
-        status.style.background = "#e53e3e";
-        status.innerText = "❌ Tutti i ponti dati sono bloccati. Riprovo tra 1 minuto.";
-        renderContent([]);
-        return;
-    }
-
     try {
-        status.innerText = "🔍 Analisi Girone C...";
+        status.innerText = "⏳ Collegamento al server FIPAV...";
+        // Usiamo un proxy che gestisce bene i contenuti dinamici
+        const targetUrl = "https://www.federvolley.it/live-score-b1-femminile";
+        const response = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`);
+        
+        if (!response.ok) throw new Error("Connessione fallita");
+        
+        const html = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-        const rows = Array.from(doc.querySelectorAll('tr'));
-        
+
+        // Nel sito FIPAV ogni match è un div con classe "item" o "match-wrap"
+        const matchBlocks = doc.querySelectorAll('.views-row, .match-wrap, .item');
         let matches = [];
-        let isGironeC = false;
 
-        rows.forEach(r => {
-            const text = r.innerText.toUpperCase();
-            if (text.includes("GIRONE C")) isGironeC = true;
-            if (text.includes("GIRONE D")) isGironeC = false;
+        status.innerText = "🔍 Analisi Girone C...";
 
-            if (isGironeC) {
-                const cells = r.querySelectorAll('td');
-                if (cells.length >= 3) {
-                    const h = cells[0].innerText.trim();
-                    const s = cells[1].innerText.trim();
-                    const a = cells[2].innerText.trim();
-                    
-                    if (s.includes("-") && h.length > 2) {
-                        const scoreParts = s.split("-").map(n => parseInt(n));
-                        if (!isNaN(scoreParts[0])) {
-                            matches.push({ h, a, s1: scoreParts[0], s2: scoreParts[1] });
+        matchBlocks.forEach(block => {
+            const text = block.innerText.toUpperCase();
+            
+            // Verifichiamo se il blocco contiene una delle squadre del nostro girone
+            const foundTeam = BASE_DATA.find(t => text.includes(t.name.substring(0, 8)));
+            
+            if (foundTeam) {
+                // Estraiamo i nomi delle due squadre nel blocco
+                const teamsInBlock = block.querySelectorAll('.team-label, .team-name, .field-content');
+                if (teamsInBlock.length >= 2) {
+                    const homeName = teamsInBlock[0].innerText.trim();
+                    const awayName = teamsInBlock[1].innerText.trim();
+
+                    // CONTEGGIO SET: Contiamo quanti quadratini blu (vinti) ci sono per ogni squadra
+                    // Nello screenshot sono i div/span con la classe che indica il set vinto
+                    const homeSets = block.querySelectorAll('.home-team-score .set-vinto, .score-1.active').length;
+                    const awaySets = block.querySelectorAll('.away-team-score .set-vinto, .score-2.active').length;
+
+                    // Se non troviamo i quadratini, proviamo a cercare il numero totale nel box "SET"
+                    let s1 = homeSets, s2 = awaySets;
+                    if (s1 === 0 && s2 === 0) {
+                        const totalScore = block.querySelector('.total-score, .set-result');
+                        if (totalScore) {
+                            const pts = totalScore.innerText.split('-');
+                            s1 = parseInt(pts[0]) || 0;
+                            s2 = parseInt(pts[1]) || 0;
                         }
+                    }
+
+                    // Aggiungiamo il match se abbiamo trovato i nomi
+                    if (homeName.length > 2) {
+                        matches.push({ h: homeName, a: awayName, s1: s1, s2: s2 });
                     }
                 }
             }
         });
 
-        renderContent(matches);
+        // Rimuoviamo duplicati (il sito a volte ripete i blocchi per il mobile)
+        const uniqueMatches = matches.filter((v,i,a)=>a.findIndex(t=>(t.h===v.h && t.a===v.a))===i);
+
+        renderContent(uniqueMatches);
         status.style.background = "#48bb78";
-        status.innerText = "✅ Connesso! Aggiornato: " + new Date().toLocaleTimeString();
+        status.innerText = "✅ LIVE AGGIORNATO: " + new Date().toLocaleTimeString();
 
     } catch (err) {
-        status.innerText = "❌ Errore parsing: " + err.message;
+        status.style.background = "#e53e3e";
+        status.innerText = "❌ Errore di rete. Riprovo...";
     }
 }
 
