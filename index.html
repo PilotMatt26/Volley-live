@@ -42,6 +42,10 @@ th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}
 <th>#</th>
 <th>Squadra</th>
 <th>Punti</th>
+<th>SV</th>
+<th>SP</th>
+<th>PF</th>
+<th>PS</th>
 </tr>
 </thead>
 <tbody id='tbody'></tbody>
@@ -53,20 +57,35 @@ th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}
 <script>
 
 let standings = [
-{team:"VolleyRò",pts:58},
-{team:"Blu Volley",pts:57},
-{team:"Sporting Club",pts:55},
-{team:"GPS Volley Group",pts:54},
-{team:"Volley Team",pts:53},
-{team:"Roma Volley",pts:50},
-{team:"Team 7",pts:47},
-{team:"Team 8",pts:45},
-{team:"Team 9",pts:40},
-{team:"Team 10",pts:36},
-{team:"Team 11",pts:31},
-{team:"Team 12",pts:28},
-{team:"Team 13",pts:20},
-{team:"Team 14",pts:10}
+
+{team:"AZIMUT GIORGIONE",pts:30,sv:30,sp:5,pf:840,ps:650},
+
+{team:"BANCA ANNIA ADUNA",pts:28,sv:29,sp:7,pf:820,ps:690},
+
+{team:"SMAPIÙ ARENA VOLLEY",pts:25,sv:27,sp:10,pf:810,ps:700},
+
+{team:"GPS VOLLEY GROUP SCHIO",pts:22,sv:25,sp:12,pf:790,ps:720},
+
+{team:"PALLAVOLO PICCO LECCO",pts:17,sv:21,sp:17,pf:760,ps:740},
+
+{team:"IDRAS TORBOLE CASAGLIA",pts:15,sv:20,sp:18,pf:740,ps:735},
+
+{team:"OROTIG AREA SPORT PESCHIERA",pts:13,sv:18,sp:20,pf:720,ps:740},
+
+{team:"ROTHOBLAAS VOLANO",pts:12,sv:18,sp:21,pf:710,ps:745},
+
+{team:"CORTINA EXPRESS IMOCO",pts:11,sv:16,sp:21,pf:700,ps:730},
+
+{team:"VOLKSBANK VICENZA VOLLEY",pts:11,sv:16,sp:22,pf:695,ps:735},
+
+{team:"PALLAV. DON FELICE COLLEONI",pts:10,sv:15,sp:23,pf:680,ps:760},
+
+{team:"BREMBO VOLLEY TEAM",pts:7,sv:12,sp:26,pf:650,ps:790},
+
+{team:"ISUZU CEREA",pts:6,sv:11,sp:27,pf:640,ps:800},
+
+{team:"PROMOBALL SANITARS",pts:3,sv:8,sp:30,pf:600,ps:850}
+
 ];
 
 function render(){
@@ -88,6 +107,10 @@ tr.innerHTML = `
 <td>${i+1}</td>
 <td>${t.team}</td>
 <td>${t.pts}</td>
+<td>${t.sv}</td>
+<td>${t.sp}</td>
+<td>${t.pf}</td>
+<td>${t.ps}</td>
 `;
 
 tbody.appendChild(tr);
