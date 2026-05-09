@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serie B1 Femminile Girone C - Classifica Live</title>
+<style>
+body {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background:#f4f4f4;
+    margin:0;
+    padding:20px;
+}
+.card {
+    background:white;
+    border-radius:16px;
+    padding:20px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom:20px;
+}
+h1,h2 {
+    margin-top:0;
+}
+table {
+    width:100%;
+    border-collapse:collapse;
+}
+th, td {
+    padding:10px;
+    border-bottom:1px solid #ddd;
+    text-align:left;
+}
+.highlight {
+    background:#d4ffd4;
+    font-weight:bold;
+}
+.red {
+    background:#ffd6d6;
+}
+.small {
+    color:#666;
+    font-size:14px;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+    <h1>🏐 Serie B1 Femminile - Girone C</h1>
+    <p>Classifica LIVE aggiornata automaticamente ogni 60 secondi</p>
+    <p class="small">Squadra monitorata: <strong>GPS VOLLEY GROUP</strong></p>
+    <p id="status">Connessione...</p>
+</div>
+
+<div class="card">
+    <h2>Posizione GPS VOLLEY GROUP</h2>
+    <div id="gpsPosition" style="font-size:32px;font-weight:bold;">--</div>
+</div>
+
+<div class="card">
+    <h2>Classifica Live</h2>
+    <table id="rankingTable">
+        <thead>
+            <tr>
+                <th>Pos</th>
+                <th>Squadra</th>
+                <th>Punti</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script>
+
+// DATI INIZIALI DA MODIFICARE SE NECESSARIO
+const teams = [
+    {name:"GPS VOLLEY GROUP", points:0},
+    {name:"Squadra 2", points:0},
+    {name:"Squadra 3", points:0},
+    {name:"Squadra 4", points:0},
+    {name:"Squadra 5", points:0},
+    {name:"Squadra 6", points:0},
+    {name:"Squadra 7", points:0},
+    {name:"Squadra 8", points:0},
+    {name:"Squadra 9", points:0},
+    {name:"Squadra 10", points:0},
+    {name:"Squadra 11", points:0},
+    {name:"Squadra 12", points:0},
+    {name:"Squadra 13", points:0},
+    {name:"Squadra 14", points:0}
+];
+
+// Simulazione classifica
+function updateRanking() {
+
+    // QUI in futuro puoi collegare scraping/API
+    // Per questa sera puoi aggiornare automaticamente
+    // leggendo il Live Score FIPAV tramite proxy
+
+    const sorted = [...teams].sort((a,b)=>b.points-a.points);
+
+    const tbody = document.querySelector("#rankingTable tbody");
+    tbody.innerHTML = "";
+
+    sorted.forEach((team,index)=>{
+        const tr = document.createElement("tr");
+
+        if(team.name.includes("GPS")) {
+            if(index+1 === 4) tr.classList.add("highlight");
+            if(index+1 === 5) tr.classList.add("red");
+        }
+
+        tr.innerHTML = `
+            <td>${index+1}</td>
+            <td>${team.name}</td>
+            <td>${team.points}</td>
+        `;
+
+        tbody.appendChild(tr);
+
+        if(team.name.includes("GPS")) {
+            document.getElementById("gpsPosition").innerHTML =
+                (index+1 === 4 ? "🟢 4ª" :
+                 index+1 === 5 ? "🔴 5ª" :
+                 (index+1)+"ª");
+        }
+    });
+
+    document.getElementById("status").innerHTML =
+        "Ultimo aggiornamento: " + new Date().toLocaleTimeString();
+}
+
+updateRanking();
+setInterval(updateRanking,60000);
+
+</script>
+
+</body>
+</html>
