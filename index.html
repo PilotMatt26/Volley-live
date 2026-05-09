@@ -74,16 +74,19 @@ const INITIAL_STANDINGS = [
 
 async function fetchLive() {
     try {
-        // Proviamo AllOrigins ma con un timestamp per evitare la cache del proxy
         const cacheBuster = new Date().getTime();
         const target = `https://www.federvolley.it/live-score-b1-femminile?t=${cacheBuster}`;
-        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(target)}`);
-        const data = await response.json();
+        
+        // Usiamo corsproxy.io che è attualmente più stabile per GitHub Pages
+        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(target)}`);
+        
+        if (!response.ok) throw new Error("Risposta del proxy non valida");
+        
+        const html = await response.text(); // corsproxy restituisce direttamente il testo, non un JSON
         
         const parser = new DOMParser();
-        const doc = parser.parseFromString(data.contents, 'text/html');
+        const doc = parser.parseFromString(html, 'text/html');
         
-        // Cerchiamo tutte le tabelle. In Federvolley spesso i live sono in table con classe "m-live" o simili
         const tables = doc.querySelectorAll('table');
         let foundMatches = [];
         let inGironeC = false;
@@ -93,22 +96,25 @@ async function fetchLive() {
             rows.forEach(row => {
                 const rowText = row.innerText.toUpperCase();
                 
-                // Switch di sezione
                 if (rowText.includes("GIRONE C")) { inGironeC = true; return; }
                 if (rowText.includes("GIRONE D")) { inGironeC = false; return; }
 
                 if (inGironeC) {
                     const cells = row.querySelectorAll('td');
-                    // Una riga valida di solito ha: Squadra Casa | Punteggio | Squadra Fuori
                     if (cells.length >= 3) {
                         const h = cells[0].innerText.trim();
                         const s = cells[1].innerText.trim();
                         const a = cells[2].innerText.trim();
 
                         if (s.includes("-") && h.length > 2) {
-                            const [s1, s2] = s.split("-").map(n => parseInt(n.trim()));
-                            if (!isNaN(s1)) {
-                                foundMatches.push({ home: h, away: a, s1, s2 });
+                            const scores = s.split("-").map(n => parseInt(n.trim()));
+                            if (!isNaN(scores[0]) && !isNaN(scores[1])) {
+                                foundMatches.push({ 
+                                    home: h, 
+                                    away: a, 
+                                    s1: scores[0], 
+                                    s2: scores[1] 
+                                });
                             }
                         }
                     }
@@ -119,8 +125,15 @@ async function fetchLive() {
         updateUI(foundMatches);
 
     } catch (e) {
-        console.error("Errore critico:", e);
-        updateUI([]); // Fallback
+        console.error("Errore critico durante il fetch:", e);
+        // Se corsproxy fallisce, proviamo un ultimo tentativo con un proxy anonimo diverso
+        try {
+            const alternativeResponse = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`);
+            const altHtml = await alternativeResponse.text();
+            // ... (stessa logica di parsing se vuoi essere super sicuro)
+        } catch(err) {
+            updateUI([]); 
+        }
     }
 }
 
