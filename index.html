@@ -1,548 +1,221 @@
 <!DOCTYPE html>
 <html lang="it">
-
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>GPS Volley Group LIVE</title>
-
-<style>
-
-body{
-    font-family:-apple-system,BlinkMacSystemFont,sans-serif;
-    background:#f3f4f6;
-    margin:0;
-}
-
-header{
-    background:#111827;
-    color:white;
-    padding:18px;
-    text-align:center;
-}
-
-.container{
-    padding:16px;
-}
-
-.card{
-    background:white;
-    border-radius:16px;
-    padding:16px;
-    margin-bottom:16px;
-    box-shadow:0 2px 8px rgba(0,0,0,.08);
-}
-
-.green{
-    background:#d1fae5;
-}
-
-.red{
-    background:#fee2e2;
-}
-
-.big{
-    font-size:52px;
-    font-weight:bold;
-}
-
-.small{
-    font-size:14px;
-    color:#666;
-}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-    font-size:14px;
-}
-
-th,td{
-    padding:10px;
-    border-bottom:1px solid #ddd;
-    text-align:left;
-}
-
-th{
-    background:#f9fafb;
-}
-
-.highlight{
-    background:#dbeafe;
-    font-weight:bold;
-}
-
-.live-score{
-    font-size:24px;
-    font-weight:bold;
-}
-
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Volley Group LIVE Dashboard</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f3f4f6; margin: 0; color: #1f2937; }
+        header { background: #111827; color: white; padding: 20px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .container { padding: 16px; max-width: 900px; margin: auto; }
+        .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,.05); }
+        .green { border-left: 8px solid #10b981; background: #f0fdf4; }
+        .red { border-left: 8px solid #ef4444; background: #fef2f2; }
+        .big { font-size: 48px; font-weight: 900; color: #111827; }
+        .small { font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+        th, td { padding: 12px 8px; border-bottom: 1px solid #e5e7eb; text-align: center; }
+        th { background: #f9fafb; font-weight: 600; color: #374151; }
+        .text-left { text-align: left; }
+        .highlight { background: #eff6ff; font-weight: bold; color: #1d4ed8; }
+        .live-score { font-size: 20px; font-weight: 800; color: #059669; }
+        .badge-live { background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; vertical-align: middle; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
 </head>
-
 <body>
 
 <header>
-    <h1>🏐 Serie B1 Femminile - Girone C</h1>
-    <div>Dashboard LIVE GPS Volley Group</div>
+    <h1>🏐 Serie B1 Femminile</h1>
+    <div>Girone C - Dashboard LIVE Real-Time</div>
 </header>
 
 <div class="container">
-
+    <!-- POSIZIONE GPS -->
     <div class="card" id="gpsCard">
-
-        <div class="small">
-            Posizione LIVE GPS Volley Group
-        </div>
-
-        <div class="big" id="gpsPos">
-            --
-        </div>
-
-        <div class="small" id="update">
-            Attendo dati live...
-        </div>
-
+        <div class="small">Posizione LIVE GPS Volley Group</div>
+        <div class="big" id="gpsPos">--</div>
+        <div id="update" class="small">Inizializzazione...</div>
     </div>
 
+    <!-- PARTITE IN CORSO -->
     <div class="card">
-
-        <h2>🔥 Partite LIVE</h2>
-
-        <table>
-
-            <thead>
-                <tr>
-                    <th>Partita</th>
-                    <th>Set</th>
-                </tr>
-            </thead>
-
-            <tbody id="liveMatches">
-            </tbody>
-
-        </table>
-
+        <h2><span class="badge-live">LIVE</span> Partite in Corso</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="text-left">Incontro</th>
+                        <th>Risultato Set</th>
+                    </tr>
+                </thead>
+                <tbody id="liveMatches">
+                    <tr><td colspan="2" style="text-align:center">Nessuna partita live rilevata al momento</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
+    <!-- CLASSIFICA AGGIORNATA -->
     <div class="card">
-
-        <h2>🏆 Classifica LIVE</h2>
-
-        <table>
-
-            <thead>
-
-                <tr>
-                    <th>#</th>
-                    <th>Squadra</th>
-                    <th>Pt</th>
-                    <th>V</th>
-                    <th>SV</th>
-                    <th>SP</th>
-                </tr>
-
-            </thead>
-
-            <tbody id="tbody">
-            </tbody>
-
-        </table>
-
+        <h2>🏆 Classifica Dinamica</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th class="text-left">Squadra</th>
+                        <th>PT</th>
+                        <th>V</th>
+                        <th>SV</th>
+                        <th>SP</th>
+                        <th>QS</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                    <!-- Popolato da JS -->
+                </tbody>
+            </table>
+        </div>
     </div>
-
 </div>
 
 <script>
-
-let liveMatchesData = [];
-
-let standings = [
-
-{ team:"AZIMUT GIORGIONE TV", pts:72, pv:24, sv:74, sp:14 },
-
-{ team:"BANCA ANNIA ADUNA PD", pts:65, pv:23, sv:71, sp:18 },
-
-{ team:"SMAPIU' ARENA VOLLEY VR", pts:56, pv:19, sv:62, sp:25 },
-
-{ team:"OROTIG AREA SPORT PESCHIERA VR", pts:42, pv:12, sv:54, sp:44 },
-
-{ team:"GPS VOLLEY GROUP SCHIO VI", pts:41, pv:14, sv:51, sp:49 },
-
-{ team:"PALLAVOLO PICCO LECCO LC", pts:36, pv:11, sv:48, sp:46 },
-
-{ team:"VOLKSBANK VICENZA VOLLEY VI", pts:35, pv:12, sv:48, sp:48 },
-
-{ team:"CORTINA EXPRESS IMOCO VE", pts:31, pv:10, sv:40, sp:52 },
-
-{ team:"ISUZU CEREA VR", pts:29, pv:10, sv:39, sp:55 },
-
-{ team:"PALLAV. DON FELICE COLLEONI BG", pts:29, pv:10, sv:38, sp:54 },
-
-{ team:"ROTHOBLAAS VOLANO TN", pts:28, pv:9, sv:37, sp:58 },
-
-{ team:"IDRAS TORBOLE CASAGLIA BS", pts:27, pv:10, sv:39, sp:57 },
-
-{ team:"BREMBO VOLLEY TEAM BG", pts:27, pv:9, sv:32, sp:57 },
-
-{ team:"PROMOBALL SANITARS BS", pts:7, pv:2, sv:15, sp:71 }
-
+// DATI DI BASE (Inizio giornata o ultimo dato consolidato)
+const classificaIniziale = [
+    { team:"AZIMUT GIORGIONE TV", pts:72, pv:24, sv:74, sp:14 },
+    { team:"BANCA ANNIA ADUNA PD", pts:65, pv:23, sv:71, sp:18 },
+    { team:"SMAPIU' ARENA VOLLEY VR", pts:56, pv:19, sv:62, sp:25 },
+    { team:"OROTIG AREA SPORT PESCHIERA VR", pts:42, pv:12, sv:54, sp:44 },
+    { team:"GPS VOLLEY GROUP SCHIO VI", pts:41, pv:14, sv:51, sp:49 },
+    { team:"PALLAVOLO PICCO LECCO LC", pts:36, pv:11, sv:48, sp:46 },
+    { team:"VOLKSBANK VICENZA VOLLEY VI", pts:35, pv:12, sv:48, sp:48 },
+    { team:"CORTINA EXPRESS IMOCO VE", pts:31, pv:10, sv:40, sp:52 },
+    { team:"ISUZU CEREA VR", pts:29, pv:10, sv:39, sp:55 },
+    { team:"PALLAV. DON FELICE COLLEONI BG", pts:29, pv:10, sv:38, sp:54 },
+    { team:"ROTHOBLAAS VOLANO TN", pts:28, pv:9, sv:37, sp:58 },
+    { team:"IDRAS TORBOLE CASAGLIA BS", pts:27, pv:10, sv:39, sp:57 },
+    { team:"BREMBO VOLLEY TEAM BG", pts:27, pv:9, sv:32, sp:57 },
+    { team:"PROMOBALL SANITARS BS", pts:7, pv:2, sv:15, sp:71 }
 ];
 
-function render(){
+let currentStandings = [];
 
-    standings.sort((a,b)=>{
+function initData() {
+    currentStandings = JSON.parse(JSON.stringify(classificaIniziale));
+}
 
-        if(b.pts !== a.pts)
-            return b.pts - a.pts;
-
-        if(b.pv !== a.pv)
-            return b.pv - a.pv;
-
-        return (b.sv/b.sp) - (a.sv/a.sp);
-
+function render() {
+    // Ordinamento FIPAV: 1. Punti, 2. Vittorie, 3. Quoziente Set
+    currentStandings.sort((a, b) => {
+        if (b.pts !== a.pts) return b.pts - a.pts;
+        if (b.pv !== a.pv) return b.pv - a.pv;
+        let ratioA = a.sv / (a.sp || 1);
+        let ratioB = b.sv / (b.sp || 1);
+        return ratioB - ratioA;
     });
 
-    const tbody =
-        document.getElementById("tbody");
-
+    const tbody = document.getElementById("tbody");
     tbody.innerHTML = "";
 
-    standings.forEach((t,i)=>{
+    currentStandings.forEach((t, i) => {
+        const isGPS = t.team.includes("GPS");
+        const tr = document.createElement("tr");
+        if (isGPS) tr.className = "highlight";
 
-        const tr =
-            document.createElement("tr");
-
-        if(t.team.includes("GPS"))
-            tr.classList.add("highlight");
+        let qs = (t.sv / (t.sp || 1)).toFixed(2);
 
         tr.innerHTML = `
-
-            <td>${i+1}</td>
-
-            <td>${t.team}</td>
-
+            <td>${i + 1}</td>
+            <td class="text-left">${t.team}</td>
             <td><b>${t.pts}</b></td>
-
             <td>${t.pv}</td>
-
             <td>${t.sv}</td>
-
             <td>${t.sp}</td>
-
+            <td>${qs}</td>
         `;
-
         tbody.appendChild(tr);
 
-        if(t.team.includes("GPS")){
-
-            const pos = i+1;
-
-            document.getElementById("gpsPos")
-                .innerHTML = pos + "ª";
-
-            const card =
-                document.getElementById("gpsCard");
-
-            if(pos === 4){
-
-                card.className = "card green";
-
-            }else{
-
-                card.className = "card red";
-
-            }
-
+        if (isGPS) {
+            document.getElementById("gpsPos").innerHTML = (i + 1) + "ª";
+            document.getElementById("gpsCard").className = (i + 1) <= 4 ? "card green" : "card red";
         }
-
     });
 
-    document.getElementById("update")
-        .innerHTML =
-        "Ultimo aggiornamento: "
-        + new Date().toLocaleTimeString("it-IT");
-
+    document.getElementById("update").innerHTML = "Ultimo aggiornamento: " + new Date().toLocaleTimeString("it-IT");
 }
 
-function renderLiveMatches(){
+async function updateLive() {
+    try {
+        // Usiamo un proxy più affidabile o tentiamo il fetch diretto
+        const response = await fetch("https://api.allorigins.win/get?url=" + encodeURIComponent("https://www.federvolley.it/live-score-b1-femminile"));
+        const data = await response.json();
+        const html = data.contents;
 
-    const tbody =
-        document.getElementById("liveMatches");
+        // Reset dei dati live prima del ricalcolo
+        initData();
 
-    tbody.innerHTML = "";
+        // Estrazione blocco Girone C
+        const parts = html.split(/Girone C/i);
+        if (parts.length < 2) throw "Girone non trovato";
+        const contentC = parts[1].split(/Girone D/i)[0];
 
-    liveMatchesData.forEach(match=>{
+        // Regex migliorata per intercettare i nomi e i punteggi set
+        const matchRegex = /<tr[^>]*>.*?<td[^>]*>(.*?)<\/td>.*?<td[^>]*>(\d+)\s*-\s*(\d+)<\/td>.*?<td[^>]*>(.*?)<\/td>/gs;
+        let match;
+        let foundLive = false;
+        const liveContainer = document.getElementById("liveMatches");
+        liveContainer.innerHTML = "";
 
-        const tr =
-            document.createElement("tr");
+        while ((match = matchRegex.exec(contentC)) !== null) {
+            foundLive = true;
+            let teamHome = match[1].replace(/<[^>]*>/g, '').trim();
+            let s1 = parseInt(match[2]);
+            let s2 = parseInt(match[3]);
+            let teamAway = match[4].replace(/<[^>]*>/g, '').trim();
 
-        tr.innerHTML = `
+            // Aggiungi a UI
+            liveContainer.innerHTML += `<tr><td class="text-left">${teamHome}<br>${teamAway}</td><td class="live-score">${s1} - ${s2}</td></tr>`;
 
-            <td>
-
-                ${match.home}
-
-                <br>
-
-                ${match.away}
-
-            </td>
-
-            <td class="live-score">
-
-                ${match.s1} - ${match.s2}
-
-            </td>
-
-        `;
-
-        tbody.appendChild(tr);
-
-    });
-
-}
-
-async function updateLive(){
-
-    try{
-
-        const proxy =
-        "https://api.allorigins.win/raw?url="
-        + encodeURIComponent(
-        "https://www.federvolley.it/live-score-b1-femminile"
-        );
-
-        const response =
-            await fetch(proxy);
-
-        const html =
-            await response.text();
-
-        /*
-        =====================================
-        PRENDE SOLO GIRONE C
-        =====================================
-        */
-
-        const gironeC =
-            html.split("Girone C")[1];
-
-        if(!gironeC){
-
-            render();
-            return;
-
+            // Aggiorna Classifica Live
+            applyLiveResult(teamHome, teamAway, s1, s2);
         }
 
-        /*
-        =====================================
-        REGEX PARTITE LIVE
-        =====================================
-        */
-
-        const regex =
-        /([A-ZÀ-Ú0-9\s\.\'\-]+)\s+(\d)\s*-\s*(\d)\s+([A-ZÀ-Ú0-9\s\.\'\-]+)/g;
-
-        const matches =
-            [...gironeC.matchAll(regex)];
-
-        /*
-        =====================================
-        RESET LIVE
-        =====================================
-        */
-
-        standings.forEach(t=>{
-
-            t.livePts = t.pts;
-            t.livePV = t.pv;
-            t.liveSV = t.sv;
-            t.liveSP = t.sp;
-
-        });
-
-        liveMatchesData = [];
-
-        /*
-        =====================================
-        ELABORA MATCH LIVE
-        =====================================
-        */
-
-        matches.forEach(m=>{
-
-            let home = m[1].trim();
-
-            let s1 = parseInt(m[2]);
-
-            let s2 = parseInt(m[3]);
-
-            let away = m[4].trim();
-
-            /*
-            ============================
-            CERCA SQUADRE
-            ============================
-            */
-
-            let t1 =
-            standings.find(s =>
-                home.includes(
-                    s.team.substring(0,12)
-                )
-            );
-
-            let t2 =
-            standings.find(s =>
-                away.includes(
-                    s.team.substring(0,12)
-                )
-            );
-
-            /*
-            ============================
-            AGGIUNGI MATCH LIVE UI
-            ============================
-            */
-
-            liveMatchesData.push({
-
-                home:home,
-                away:away,
-                s1:s1,
-                s2:s2
-
-            });
-
-            if(!t1 || !t2)
-                return;
-
-            /*
-            ============================
-            SET LIVE
-            ============================
-            */
-
-            t1.liveSV += s1;
-            t1.liveSP += s2;
-
-            t2.liveSV += s2;
-            t2.liveSP += s1;
-
-            /*
-            ============================
-            PUNTI FIPAV
-            ============================
-            */
-
-            // Vittoria 3-0 o 3-1
-
-            if(s1 === 3 && s2 <= 1){
-
-                t1.livePts += 3;
-                t1.livePV += 1;
-
-            }
-
-            else if(s2 === 3 && s1 <= 1){
-
-                t2.livePts += 3;
-                t2.livePV += 1;
-
-            }
-
-            // Vittoria 3-2
-
-            else if(s1 === 3 && s2 === 2){
-
-                t1.livePts += 2;
-                t1.livePV += 1;
-
-                t2.livePts += 1;
-
-            }
-
-            else if(s2 === 3 && s1 === 2){
-
-                t2.livePts += 2;
-                t2.livePV += 1;
-
-                t1.livePts += 1;
-
-            }
-
-        });
-
-        /*
-        =====================================
-        APPLICA DATI LIVE
-        =====================================
-        */
-
-        standings.forEach(t=>{
-
-            t.pts = t.livePts;
-            t.pv = t.livePV;
-            t.sv = t.liveSV;
-            t.sp = t.liveSP;
-
-        });
-
-        /*
-        =====================================
-        ORDINAMENTO FIPAV
-        =====================================
-        */
-
-        standings.sort((a,b)=>{
-
-            // Punti
-
-            if(b.pts !== a.pts)
-                return b.pts - a.pts;
-
-            // Vittorie
-
-            if(b.pv !== a.pv)
-                return b.pv - a.pv;
-
-            // Quoziente set
-
-            let qsa = a.sv / a.sp;
-            let qsb = b.sv / b.sp;
-
-            if(qsb !== qsa)
-                return qsb - qsa;
-
-            return 0;
-
-        });
+        if(!foundLive) liveContainer.innerHTML = "<tr><td colspan='2'>Nessun match live in questo istante</td></tr>";
 
         render();
-
-        renderLiveMatches();
-
-    }catch(e){
-
-        console.log("Errore LIVE:",e);
-
+    } catch (e) {
+        console.error("Errore recupero dati:", e);
+        // Se fallisce, renderizza comunque i dati base
+        initData();
         render();
-
     }
-
 }
 
+function applyLiveResult(hName, aName, s1, s2) {
+    const t1 = currentStandings.find(s => hName.toUpperCase().includes(s.team.substring(0, 10)));
+    const t2 = currentStandings.find(s => aName.toUpperCase().includes(s.team.substring(0, 10)));
+
+    if (t1 && t2) {
+        t1.sv += s1; t1.sp += s2;
+        t2.sv += s2; t2.sp += s1;
+
+        // Calcolo Punti Live (Regolamento FIPAV)
+        if (s1 === 3 && s2 <= 1) { t1.pts += 3; t1.pv += 1; }
+        else if (s2 === 3 && s1 <= 1) { t2.pts += 3; t2.pv += 1; }
+        else if (s1 === 3 && s2 === 2) { t1.pts += 2; t1.pv += 1; t2.pts += 1; }
+        else if (s2 === 3 && s1 === 2) { t2.pts += 2; t2.pv += 1; t1.pts += 1; }
+    }
+}
+
+// Avvio
+initData();
 render();
-
 updateLive();
-
-setInterval(updateLive,60000);
-
+// Refresh ogni 60 secondi
+setInterval(updateLive, 60000);
 </script>
 
 </body>
 </html>
-```
-
